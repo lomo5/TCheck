@@ -13,12 +13,17 @@ class TcheckGUI(object):
         self.window.title('通信能力报表自动填报程序')
         # 窗口尺寸，注意宽、高中间是小写字母x！！！
         self.window.geometry()
-        # self.mainframe = ttk.Frame(self.window, padding="3 3 12 12", relief='flat')
+        # self.mainframe = tk.Frame(self.window,  relief='flat', bg='green')
 
         # 以下创建各控件
         # 设置label内容及格式，其中width和height的单位是单个字符的宽和高
         self.label1 = tk.Label(self.window,
-                               text='本机必须安装chrome浏览器。\n' + '请将chromedriver.exe的目录加入系统环境变量PATH参数中。\n' + '请将指标excel文件："汇总表.xls"和"逻辑审核关系表.xls"与本程序置于同一目录下。且不能修改这两个文档的名称、结构等内容。\n' + '如果本月不提交季报，请务必将季报指标值所在列清空！\n' + '填报完成后需要手工提交审核。')  # ,width=50, height=2, bg='green')
+                               text='1、本机必须安装chrome浏览器。\n'
+                                    + '2、请将chromedriver.exe的目录加入系统环境变量PATH参数中。\n'
+                                    + '3、请将指标excel文件："汇总表.xls"和"逻辑审核关系表.xls"与本程序置于同一目录下。且不能修改这两个文档的名称、结构等内容。\n'
+                                    + '4、如果本月不提交季报，请务必将季报指标值所在列（默认为第五列）清空！\n'
+                                    + '5、填报完成后需要手工提交审核。'
+                                    + '6、本月指标默认为每个sheet的第五列。', justify='left')  # ,width=50, height=2, bg='green')
         # 信息显示的label
         self.info = tk.StringVar()
         self.info.set('请填入check.xls中，本月指标所在的列（数字）。')  # 此变量绑定到label_info
@@ -35,7 +40,9 @@ class TcheckGUI(object):
         self.fill_btn = tk.Button(self.window, text='填指标', width=8, height=2, command=self.fill_web_pages)
 
     def gui_arrange(self):  # 进行所有控件的布局
-        # self.mainframe.grid(column=0, row=0, sticky="N W E S")  # 为什么frame不能设置底色？！！！？？？？？
+        # self.mainframe.grid(column=0, row=0, sticky="N W E S")
+        #  为什么frame不能设置底色？A：是可以的，不能如网上的例子调用ttk，而是要调用tk来创建
+        #  详见：https://blog.csdn.net/nkd50000/article/details/77511707?locationNum=2&fps=1
         # self.mainframe.columnconfigure(0, weight=1)
         # self.mainframe.rowconfigure(0, weight=1)
         self.label1.grid(column=0, row=0, columnspan=4, sticky='W')
