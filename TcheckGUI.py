@@ -71,10 +71,6 @@ class TcheckGUI(object):
         except ValueError:
             col = 5  # 如果输入非数字，或为空，则默认为第5列
 
-        # value1 = {}  # "通信能力月报表"指标值
-        # value2 = {}  # "区域情况统计表（三）"指标值
-        # value3 = {}  # '地市填写——移动通信能力季报表（二）'指标值
-
         # 读入通信能力报表逻辑检查公式（只导入了两个sheet，没有导入季报的审核公式）
         try:
             workbook_logic = xlrd.open_workbook('逻辑审核关系表.xls')
@@ -105,9 +101,9 @@ class TcheckGUI(object):
         commands = []  # 指标变量赋值指令列表
         try:
             # 读取三个sheet中的指标值，生成赋值命令list
-            commands += self.__read_count_values(sheet1, col)  # "通信能力月报表"
-            commands += self.__read_count_values(sheet2, col)  # "区域情况统计表（三）"
-            commands += self.__read_count_values(sheet3, col)  # "地市填写——移动通信能力季报表（二）"
+            commands += self.__get_values_assignment_commands(sheet1, col)  # "通信能力月报表"
+            commands += self.__get_values_assignment_commands(sheet2, col)  # "区域情况统计表（三）"
+            commands += self.__get_values_assignment_commands(sheet3, col)  # "地市填写——移动通信能力季报表（二）"
             for comm in commands:
                 exec(comm)  # 执行变量赋值语句
         except IndexError:
@@ -145,13 +141,13 @@ class TcheckGUI(object):
         # return
 
     # 从sheet中读取指标值，并生成指标变量赋值语句存入一个list中
-    def __read_count_values(self, sheet, column):
+    def __get_values_assignment_commands(self, sheet, column):
         # sheet:excel表格的sheet对象
         # column：指标值所在列
-        # 返回复制命令对象列表
+        # 返回：赋值语句对象的列表
 
         row_count = sheet.nrows  # 总行数
-        values = {}
+        values = {}  # 指标值字典
         command_list = []
         for r in range(4, row_count):
             if sheet.cell(r, 0).value != "" and sheet.cell(r, column - 1).value != "":
@@ -164,6 +160,26 @@ class TcheckGUI(object):
                 command_list.append(define_var_command)
         return command_list
 
+    def __get_counts_and_reasons(self, sheet, column):
+        # sheet:excel表格的sheet对象
+        # column：指标值所在列
+        # 获取指标sheet中的指标值和修改原因，返回对象：指标值dict、原因dict
+        row_count = sheet.nrows  # 总行数
+        values = {}  # 指标值字典
+        reasons = {}  # 原因字典
+        for r in range(4, row_count):  # r:当前行
+            if sheet.cell(r, 0).value != "" and sheet.cell(r, column - 1).value != "":
+                namer = sheet.cell(r, 0).value
+                valuer = int(sheet.cell(r, column - 1).value)
+                reason = sheet.cell(r, column).value  # 变更原因（值在col-1列（列数从0开始计数），原因在col列）
+                values[namer] = valuer  # 指标值
+                if reason == '':
+                    reasons[namer] = '  '
+                else:
+                    reasons[namer] = reason
+        return values, reasons
+
+    # 填表
     def fill_web_pages(self):
         # 读入通信能力报表数据表
         try:
@@ -176,76 +192,28 @@ class TcheckGUI(object):
         sheet3 = wkbk.sheet_by_name('地市填写——移动通信能力季报表（二）')
         col_str = self.input_col.get()  # 取得当月数据所在的列（数字）
 
-        col = 5  # 默认当月数据在第五列！！！！！！！！！！！！！
         try:
             col = int(col_str)
         except ValueError:
-            # print('输入的是：%d' % col)
-            col = 5  # 默认为第5列
-            # self.info.set('请输入正确的数字！')
-            # return
-
-        row_count1 = sheet1.nrows  # 总行数
-        row_count2 = sheet2.nrows  # 总行数
-        row_count3 = sheet3.nrows  # 总行数
-
-        value1 = {}  # "通信能力月报表"指标值
-        value2 = {}  # "区域情况统计表（三）"指标值
-        value3 = {}  # "地市填写——移动通信能力季报表（二）"指标值
-
-        reason1 = {}  # "通信能力月报表"指标变更原因
-        reason2 = {}  # "区域情况统计表（三）"指标变更原因
-        reason3 = {}  # "地市填写——移动通信能力季报表（二）"指标变更原因
+            col = 5  # 如果没有输入值，或者输入非数字，则默认为第5列
 
         try:
-            # 将"通信能力月报表"指标值读入value1字典
-            for r in range(4, row_count1):  # r:当前行
-                if sheet1.cell(r, 0).value != "" and sheet1.cell(r, col - 1).value != "":
-                    namer = sheet1.cell(r, 0).value
-                    valuer = int(sheet1.cell(r, col - 1).value)
-                    reason = sheet1.cell(r, col).value  # 变更原因（值在col-1列（列数从0开始计数），原因在col列）
-                    value1[namer] = valuer  # 指标值
-                    if reason == '':
-                        reason1[namer] = '  '
-                    else:
-                        reason1[namer] = reason
-
-            # 将"区域情况统计表（三）"指标值读入value2字典
-            for r in range(4, row_count2):  # r:当前行
-                if sheet2.cell(r, 0).value != "" and sheet2.cell(r, col - 1).value != "":
-                    namer = sheet2.cell(r, 0).value
-                    valuer = int(sheet2.cell(r, col - 1).value)
-                    reason = sheet2.cell(r, col).value  # 变更原因
-                    value2[namer] = valuer
-                    if reason == '':
-                        reason2[namer] = '  '
-                    else:
-                        reason2[namer] = reason
-
-            # 将"地市填写——移动通信能力季报表（二）"指标值读入value3字典
-            for r in range(4, row_count3):  # r:当前行
-                if sheet3.cell(r, 0).value != "" and sheet3.cell(r, col - 1).value != "":
-                    namer = sheet3.cell(r, 0).value
-                    valuer = int(sheet3.cell(r, col - 1).value)
-                    reason = sheet3.cell(r, col).value  # 变更原因
-                    value3[namer] = valuer
-                    if reason == '':
-                        reason3[namer] = '  '
-                    else:
-                        reason3[namer] = reason
+            value1, reason1 = self.__get_counts_and_reasons(sheet1, col)  # 将"通信能力月报表"指标值、原因读入字典
+            value2, reason2 = self.__get_counts_and_reasons(sheet2, col)  # 将"区域情况统计表（三）"指标值、原因读入字典
+            value3, reason3 = self.__get_counts_and_reasons(sheet3, col)  # 将"地市填写——移动通信能力季报表（二）"指标值、原因读入字典
         except IndexError:
             print('输入的是：%d' % col)
             self.info.set('输入的数字超出了范围！请重新输入：')
             return
+        except ValueError:
+            self.info.set('输入的列值不正确！请重新输入：')
+            return
 
-        # 整合成一个value字典
-        # value = {}
-        # value.update(value1)
-        # value.update(value2)
-
-        # 使用chrome浏览器
-        # 如果是windows且chrome未安装在默认位置，则需指定安装位置
-        # executable_path = {'executable_path': 'C:\Program Files\Google\Chrome\Application\chrome.exe'}
+        ''' 
+        使用chrome浏览器
+        如果是windows且chrome未安装在默认位置，则需指定安装位置
+        executable_path = {'executable_path': 'C:\Program Files\Google\Chrome\Application\chrome.exe'}
+        '''
         browser = Browser('chrome')  # , **executable_path)
         # 访问通信能力月报表网站
         browser.visit('http://10.204.51.174/txnl/Login.aspx')
@@ -256,94 +224,137 @@ class TcheckGUI(object):
         # 点击登陆按钮
         browser.find_by_xpath('//*[@id="ibtnSubmit"]').first.click()
 
+        # 填入指标、原因：
+        try:  # 如果网页元素不存在，则说明暂时还不能填写（此时selenium会报错：selenium.common.exceptions.InvalidElementStateException）
+            # 填报"移动通信能力月报表"
+            self.__fill_web(browser, '//*[@id="ProjectManagement0101"]/table[1]/tbody/tr/td[2]', 180, value1, reason1)
+            # 填报"区域情况统计表（三）"
+            self.__fill_web(browser, '//*[@id="ProjectManagement0101"]/table[5]/tbody/tr/td[2]', 105, value2, reason2)
+            if len(value3) == 0:  # 如果季度报表中的指标值均为空，则不填季报，直接退出
+                return
+            # 填报"地市填写——移动通信能力季报表（二）"
+            self.__fill_web(browser, '//*[@id="ProjectManagement0101"]/table[21]/tbody/tr/td[2]', 191, value3, reason3)
+        except selenium.common.exceptions.InvalidElementStateException:
+            self.info.set('指标暂时不能填写！')
+            return
+
         # ----------------------------填报"移动通信能力月报表"---------------------------
+        # 在左侧iframe中操作
+        # with browser.get_iframe('ltbfrm') as ltbfrm:
+        #     # 点击页面左侧的"移动通信能力月报表"，在右半部分的iframe中打开填报页面
+        #     browser.find_by_xpath('//*[@id="ProjectManagement0101"]/table[1]/tbody/tr/td[2]').first.click()
+        #
+        # # 在右侧iframe中操作
+        # browser.is_element_present_by_id('rtmfrm', wait_time=10)
+        # with browser.get_iframe('rtmfrm') as rtmfrm:
+        #     # 填"移动通信能力月报表"时的所在行计数器(共179行）
+        #     for row in range(4, 180):  # 右侧指标表格最多180行
+        #         rtmfrm.is_element_present_by_id('td' + str(row) + '_0', wait_time=10)  # 判断对应的网页元素是否已经显示出来
+        #         key = browser.find_by_id('td' + str(row) + '_0').first.value  # 获取网页当前行等指标名称
+        #         # key=browser.find_by_xpath('//*[@id="td4_0"]').first.value
+        #         if key in value1:
+        #             print('当前指标：{0}。'.format(key))
+        #             browser.find_by_id('td' + str(row) + '_3').click()  # 点击指标对应的"太原"列的单元格，弹出指标填写对话框
+        #             # str = browser.find_by_xpath('//*[@id="txt_zbmc"]').value  # 读取"指标名称"
+        #             try:  # 如果网页元素不存在，则说明暂时还不能填写（此时selenium会报错：selenium.common.exceptions.InvalidElementStateException）
+        #                 browser.find_by_id('txt_reason').fill(reason1[key])  # 填入指标修改原因
+        #                 browser.find_by_id('txt_xgz').fill(value1[key])  # 填入指标值
+        #                 browser.find_by_id('btn_tj').click()  # 点击提交按钮
+        #             except selenium.common.exceptions.InvalidElementStateException:
+        #                 self.info.set('指标暂时不能填写！')
+        #                 return
+        #
+        #             alert = browser.get_alert()  # 点击提交按钮后网也会弹出alert对话框要求确认
+        #             alert.accept()
+        #             # print(alert.text)
+        # # ---------------------------填报"移动通信能力月报表"---------------------------
+        #
+        # # ---------------------------填报"区域情况统计表（三）"---------------------------
+        # with browser.get_iframe('ltbfrm') as ltbfrm:
+        #     # 点击页面左侧的"区域情况统计表（三）"，在右半部分的iframe中打开填报页面
+        #     browser.find_by_xpath('//*[@id="ProjectManagement0101"]/table[5]/tbody/tr/td[2]').first.click()
+        #
+        # # 在右侧iframe中操作
+        # browser.is_element_present_by_id('rtmfrm', wait_time=20)
+        # with browser.get_iframe('rtmfrm') as rtmfrm:
+        #     # 填"区域情况统计表（三）"时的所在行计数器(共104行）
+        #     for row in range(4, 105):  # 右侧指标表格最多105行
+        #         rtmfrm.is_element_present_by_id('td' + str(row) + '_0', wait_time=10)
+        #         key = browser.find_by_id('td' + str(row) + '_0').value  # 获取指标名称
+        #         if key in value2:
+        #             browser.find_by_id('td' + str(row) + '_3').click()  # 点击指标对应的"太原"列的单元格，弹出指标填写对话框
+        #             # str = browser.find_by_xpath('//*[@id="txt_zbmc"]').value  # 读取"指标名称"
+        #             try:
+        #                 browser.find_by_id('txt_reason').fill(reason2[key])
+        #                 browser.find_by_id('txt_xgz').fill(value2[key])
+        #                 browser.find_by_id('btn_tj').click()
+        #             except selenium.common.exceptions.InvalidElementStateException:
+        #                 self.info.set('指标暂时不能填写！')
+        #                 return
+        #
+        #             alert = browser.get_alert()  # 点击提交按钮后网也会弹出alert对话框要求确认
+        #             alert.accept()
+        #             # print('当前指标：{0}。'.format(key))
+        #
+        # # ---------------------------填报"区域情况统计表（三）"---------------------------
+        #
+        # if len(value3) == 0:  # 如果季度报表中的指标值均为空，则不填季报，直接退出
+        #     return
+        #     # ---------------------------填报"地市填写——移动通信能力季报表（二）"---------------------------
+        # with browser.get_iframe('ltbfrm') as ltbfrm:
+        #     # 点击页面左侧的"地市填写——移动通信能力季报表（二）"，在右半部分的iframe中打开填报页面
+        #     browser.find_by_xpath('//*[@id="ProjectManagement0101"]/table[21]/tbody/tr/td[2]').first.click()
+        #
+        # # 在右侧iframe中操作
+        # browser.is_element_present_by_id('rtmfrm', wait_time=20)
+        # with browser.get_iframe('rtmfrm') as rtmfrm:
+        #     # 填"区域情况统计表（三）"时的所在行计数器(共104行）
+        #     for row in range(4, 191):  # 右侧指标表格最多191行
+        #         rtmfrm.is_element_present_by_id('td' + str(row) + '_0', wait_time=10)
+        #         key = browser.find_by_id('td' + str(row) + '_0').value  # 获取指标名称
+        #         if key in value2:
+        #             browser.find_by_id('td' + str(row) + '_3').click()  # 点击指标对应的"太原"列的单元格，弹出指标填写对话框
+        #             try:
+        #                 browser.find_by_id('txt_reason').fill(reason2[key])
+        #                 browser.find_by_id('txt_xgz').fill(value2[key])
+        #                 browser.find_by_id('btn_tj').click()
+        #             except selenium.common.exceptions.InvalidElementStateException:
+        #                 self.info.set('指标暂时不能填写！')
+        #                 return
+        #             alert = browser.get_alert()  # 点击提交按钮后网也会弹出alert对话框要求确认
+        #             alert.accept()
+
+                    # ---------------------------填报"地市填写——移动通信能力季报表（二）"---------------------------
+
+    def __fill_web(self, browser, xpath_left, rows, values, reasons):
+        # browser：浏览器对象
+        # xpath_left:左侧菜单中相应链接的xpath
+        # rows：页面右侧表格最大行数
+        # values：指标值dict
+        # reasons：原因dict
+
         # 在左侧iframe中操作
         with browser.get_iframe('ltbfrm') as ltbfrm:
             # 点击页面左侧的"移动通信能力月报表"，在右半部分的iframe中打开填报页面
-            browser.find_by_xpath('//*[@id="ProjectManagement0101"]/table[1]/tbody/tr/td[2]').first.click()
+            browser.find_by_xpath(xpath_left).first.click()
 
         # 在右侧iframe中操作
         browser.is_element_present_by_id('rtmfrm', wait_time=10)
         with browser.get_iframe('rtmfrm') as rtmfrm:
-            # 填"移动通信能力月报表"时的所在行计数器(共179行）
-            for row in range(4, 180):  # 右侧指标表格最多180行
+            # row：所在行计数器(共rows行）
+            for row in range(4, rows):  # 右侧指标表格最多rows行
                 rtmfrm.is_element_present_by_id('td' + str(row) + '_0', wait_time=10)  # 判断对应的网页元素是否已经显示出来
                 key = browser.find_by_id('td' + str(row) + '_0').first.value  # 获取网页当前行等指标名称
-                # key=browser.find_by_xpath('//*[@id="td4_0"]').first.value
-                if key in value1:
+                if key in values:
                     print('当前指标：{0}。'.format(key))
                     browser.find_by_id('td' + str(row) + '_3').click()  # 点击指标对应的"太原"列的单元格，弹出指标填写对话框
-                    # str = browser.find_by_xpath('//*[@id="txt_zbmc"]').value  # 读取"指标名称"
-                    try:  # 如果网页元素不存在，则说明暂时还不能填写（此时selenium会报错：selenium.common.exceptions.InvalidElementStateException）
-                        browser.find_by_id('txt_reason').fill(reason1[key])  # 填入指标修改原因
-                        browser.find_by_id('txt_xgz').fill(value1[key])  # 填入指标值
-                        browser.find_by_id('btn_tj').click()  # 点击提交按钮
-                    except selenium.common.exceptions.InvalidElementStateException:
-                        self.info.set('指标暂时不能填写！')
-                        return
+                    # 此处不拦截selenium.common.exceptions.InvalidElementStateException异常，留到上层函数中处理！
+                    browser.find_by_id('txt_reason').fill(reasons[key])  # 填入指标修改原因
+                    browser.find_by_id('txt_xgz').fill(values[key])  # 填入指标值
+                    browser.find_by_id('btn_tj').click()  # 点击提交按钮
 
                     alert = browser.get_alert()  # 点击提交按钮后网也会弹出alert对话框要求确认
                     alert.accept()
-                    # print(alert.text)
-
-        # ---------------------------填报"移动通信能力月报表"---------------------------
-
-        # ---------------------------填报"区域情况统计表（三）"---------------------------
-        with browser.get_iframe('ltbfrm') as ltbfrm:
-            # 点击页面左侧的"区域情况统计表（三）"，在右半部分的iframe中打开填报页面
-            browser.find_by_xpath('//*[@id="ProjectManagement0101"]/table[5]/tbody/tr/td[2]').first.click()
-
-        # 在右侧iframe中操作
-        browser.is_element_present_by_id('rtmfrm', wait_time=20)
-        with browser.get_iframe('rtmfrm') as rtmfrm:
-            # 填"区域情况统计表（三）"时的所在行计数器(共104行）
-            for row in range(4, 105):  # 右侧指标表格最多105行
-                rtmfrm.is_element_present_by_id('td' + str(row) + '_0', wait_time=10)
-                key = browser.find_by_id('td' + str(row) + '_0').value  # 获取指标名称
-                if key in value2:
-                    browser.find_by_id('td' + str(row) + '_3').click()  # 点击指标对应的"太原"列的单元格，弹出指标填写对话框
-                    # str = browser.find_by_xpath('//*[@id="txt_zbmc"]').value  # 读取"指标名称"
-                    try:
-                        browser.find_by_id('txt_reason').fill(reason2[key])
-                        browser.find_by_id('txt_xgz').fill(value2[key])
-                        browser.find_by_id('btn_tj').click()
-                    except selenium.common.exceptions.InvalidElementStateException:
-                        self.info.set('指标暂时不能填写！')
-                        return
-
-                    alert = browser.get_alert()  # 点击提交按钮后网也会弹出alert对话框要求确认
-                    alert.accept()
-                    # print('当前指标：{0}。'.format(key))
-
-        # ---------------------------填报"区域情况统计表（三）"---------------------------
-
-        if len(value3) == 0:  # 如果季度报表中的指标值均为空，则不填季报，直接退出
-            return
-            # ---------------------------填报"地市填写——移动通信能力季报表（二）"---------------------------
-        with browser.get_iframe('ltbfrm') as ltbfrm:
-            # 点击页面左侧的"地市填写——移动通信能力季报表（二）"，在右半部分的iframe中打开填报页面
-            browser.find_by_xpath('//*[@id="ProjectManagement0101"]/table[21]/tbody/tr/td[2]').first.click()
-
-        # 在右侧iframe中操作
-        browser.is_element_present_by_id('rtmfrm', wait_time=20)
-        with browser.get_iframe('rtmfrm') as rtmfrm:
-            # 填"区域情况统计表（三）"时的所在行计数器(共104行）
-            for row in range(4, 191):  # 右侧指标表格最多191行
-                rtmfrm.is_element_present_by_id('td' + str(row) + '_0', wait_time=10)
-                key = browser.find_by_id('td' + str(row) + '_0').value  # 获取指标名称
-                if key in value2:
-                    browser.find_by_id('td' + str(row) + '_3').click()  # 点击指标对应的"太原"列的单元格，弹出指标填写对话框
-                    try:
-                        browser.find_by_id('txt_reason').fill(reason2[key])
-                        browser.find_by_id('txt_xgz').fill(value2[key])
-                        browser.find_by_id('btn_tj').click()
-                    except selenium.common.exceptions.InvalidElementStateException:
-                        self.info.set('指标暂时不能填写！')
-                        return
-                    alert = browser.get_alert()  # 点击提交按钮后网也会弹出alert对话框要求确认
-                    alert.accept()
-
-                    # ---------------------------填报"地市填写——移动通信能力季报表（二）"---------------------------
 
 
 def main():
