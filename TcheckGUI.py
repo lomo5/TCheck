@@ -1,8 +1,8 @@
 import tkinter as tk
 
+import selenium  # 需要使用包中的异常告警：selenium.common.exceptions.InvalidElementStateException
 import xlrd
 from splinter import Browser
-import selenium  # 需要使用包中的异常告警：selenium.common.exceptions.InvalidElementStateException
 
 
 class TcheckGUI(object):
@@ -29,7 +29,7 @@ class TcheckGUI(object):
         self.info.set('请填入check.xls中，本月指标所在的列（数字）。')  # 此变量绑定到label_info
         self.label_info = tk.Label(self.window, textvariable=self.info, bg='limegreen')  # , bg='blue')
         # 输入框前的提示：
-        self.label_input = tk.Label(self.window, text='当月指标所在列：', width=15)
+        self.label_input = tk.Label(self.window, text='当月指标所在列（默认第5列）：', width=18)
         # 创建一个输入框,用来输入指标所在的列数
         self.input_col = tk.Entry(self.window, width=10)
 
@@ -56,31 +56,31 @@ class TcheckGUI(object):
 
     def check_count(self):  # 检查excel文件中的指标值
         # 读入通信能力报表数据表
-        wkbk = xlrd.open_workbook('汇总表.xls')
+        try:
+            wkbk = xlrd.open_workbook('汇总表.xls')
+        except FileNotFoundError:
+            self.info.set('"汇总表.xls"文件不存在！')
+            return
         sheet1 = wkbk.sheet_by_name("通信能力月报表")
         sheet2 = wkbk.sheet_by_name("区域情况统计表（三）")
         sheet3 = wkbk.sheet_by_name('地市填写——移动通信能力季报表（二）')
         col_str = self.input_col.get()  # 取得当月数据所在的列（数字）
 
-        col = 5  # 默认为第5列
         try:
             col = int(col_str)
         except ValueError:
-            print('输入的是：%d' % col)
-            # col = 5  # 默认为第5列
-            self.info.set('请输入正确的数字！')
-            return
+            col = 5  # 如果输入非数字，或为空，则默认为第5列
 
-        row_count1 = sheet1.nrows  # 总行数
-        row_count2 = sheet2.nrows  # 总行数
-        row_count3 = sheet3.nrows  # 总行数
-
-        value1 = {}  # "通信能力月报表"指标值
-        value2 = {}  # "区域情况统计表（三）"指标值
-        value3 = {}  # '地市填写——移动通信能力季报表（二）'指标值
+        # value1 = {}  # "通信能力月报表"指标值
+        # value2 = {}  # "区域情况统计表（三）"指标值
+        # value3 = {}  # '地市填写——移动通信能力季报表（二）'指标值
 
         # 读入通信能力报表逻辑检查公式（只导入了两个sheet，没有导入季报的审核公式）
-        workbook_logic = xlrd.open_workbook('逻辑审核关系表.xls')
+        try:
+            workbook_logic = xlrd.open_workbook('逻辑审核关系表.xls')
+        except FileNotFoundError:
+            self.info.set('"逻辑审核关系表.xls"文件不存在！')
+            return
         sheet_logic1 = workbook_logic.sheet_by_name('月报审核公式')
         sheet_logic2 = workbook_logic.sheet_by_name('区域统计表审核公式')
         sheet_logic3 = workbook_logic.sheet_by_name('季报审核公式')
@@ -102,38 +102,20 @@ class TcheckGUI(object):
         for r in range(1, row_count_l3):
             func_check.append(sheet_logic3.cell(r, col_python_func).value)  # .value表示单元格中的值
 
+        commands = []  # 指标变量赋值指令列表
         try:
-            # 将"通信能力月报表"指标值读入value1字典，将所有指标定义为以指标名为变量名的变量，并为其赋值
-            for r in range(4, row_count1):
-                if sheet1.cell(r, 0).value != "" and sheet1.cell(r, col).value != "":
-                    namer = sheet1.cell(r, 0).value
-                    # 如果前面输入的col（指标所在列的值超出范围，下面这句会报错：IndexError: array index out of range
-                    valuer = sheet1.cell(r, col - 1).value
-                    value1[namer] = valuer
-                    # eval(namer+' = '+str(valuer))  # 将字符串表示的表达式转换为表达式，并求值
-                    define_var_command = compile(namer + ' = ' + str(valuer), '', 'single')  # 生成变量赋值语句
-                    exec(define_var_command)  # 执行变量赋值语句
-
-            # 将"区域情况统计表（三）"指标值读入value2字典，将所有指标定义为以指标名为变量名的变量，并为其赋值
-            for r in range(4, row_count2):
-                if sheet2.cell(r, 0).value != "" and sheet2.cell(r, col - 1).value != "":
-                    namer = sheet2.cell(r, 0).value
-                    valuer = sheet2.cell(r, col - 1).value
-                    value2[namer] = valuer
-                    define_var_command = compile(namer + ' = ' + str(valuer), '', 'single')  # 生成变量赋值语句
-                    exec(define_var_command)  # 执行变量赋值语句
-
-            # 将"地市填写——移动通信能力季报表（二）"指标值读入value3字典，将所有指标定义为以指标名为变量名的变量，并为其赋值
-            for r in range(4, row_count3):
-                if sheet3.cell(r, 0).value != "" and sheet3.cell(r, col - 1).value != "":
-                    namer = sheet3.cell(r, 0).value  # 指标名称
-                    valuer = sheet3.cell(r, col - 1).value  # 指标值
-                    value3[namer] = valuer
-                    define_var_command = compile(namer + ' = ' + str(valuer), '', 'single')  # 生成变量赋值语句
-                    exec(define_var_command)  # 执行变量赋值语句
+            # 读取三个sheet中的指标值，生成赋值命令list
+            commands += self.__read_count_values(sheet1, col)  # "通信能力月报表"
+            commands += self.__read_count_values(sheet2, col)  # "区域情况统计表（三）"
+            commands += self.__read_count_values(sheet3, col)  # "地市填写——移动通信能力季报表（二）"
+            for comm in commands:
+                exec(comm)  # 执行变量赋值语句
         except IndexError:
             print('输入的是：%d' % col)
             self.info.set('输入的数字超出了范围！请重新输入：')
+            return
+        except SyntaxError:
+            self.info.set('输入的列值不正确！请重新输入：')
             return
 
         result = True  # 记录是否所有公式均为true
@@ -160,12 +142,35 @@ class TcheckGUI(object):
         else:
             print('未通过逻辑审核公式检验')
             self.info.set('未通过逻辑审核公式:%s' % str_wrong)
+        # return
 
-        return
+    # 从sheet中读取指标值，并生成指标变量赋值语句存入一个list中
+    def __read_count_values(self, sheet, column):
+        # sheet:excel表格的sheet对象
+        # column：指标值所在列
+        # 返回复制命令对象列表
+
+        row_count = sheet.nrows  # 总行数
+        values = {}
+        command_list = []
+        for r in range(4, row_count):
+            if sheet.cell(r, 0).value != "" and sheet.cell(r, column - 1).value != "":
+                namer = sheet.cell(r, 0).value  # 指标名称
+                # 如果前面输入的col（指标所在列的值超出范围，下面这句会报错：IndexError: array index out of range
+                valuer = sheet.cell(r, column - 1).value  # 指标值
+                values[namer] = valuer
+                # eval(namer+' = '+str(valuer))  # 将字符串表示的表达式转换为表达式，并求值
+                define_var_command = compile(namer + ' = ' + str(valuer), '', 'single')  # 生成变量赋值语句对象
+                command_list.append(define_var_command)
+        return command_list
 
     def fill_web_pages(self):
         # 读入通信能力报表数据表
-        wkbk = xlrd.open_workbook('汇总表.xls')
+        try:
+            wkbk = xlrd.open_workbook('汇总表.xls')
+        except FileNotFoundError:
+            self.info.set('"汇总表.xls"文件不存在！')
+            return
         sheet1 = wkbk.sheet_by_name("通信能力月报表")
         sheet2 = wkbk.sheet_by_name("区域情况统计表（三）")
         sheet3 = wkbk.sheet_by_name('地市填写——移动通信能力季报表（二）')
@@ -175,10 +180,10 @@ class TcheckGUI(object):
         try:
             col = int(col_str)
         except ValueError:
-            print('输入的是：%d' % col)
-            # col = 5  # 默认为第5列
-            self.info.set('请输入正确的数字！')
-            return
+            # print('输入的是：%d' % col)
+            col = 5  # 默认为第5列
+            # self.info.set('请输入正确的数字！')
+            # return
 
         row_count1 = sheet1.nrows  # 总行数
         row_count2 = sheet2.nrows  # 总行数
