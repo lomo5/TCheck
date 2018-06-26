@@ -34,10 +34,15 @@ class TcheckGUI(object):
         self.input_col = tk.Entry(self.window, width=10)
 
         # 检查excel文件中的指标的button
-        self.btn = tk.Button(self.window, text='检查指标', width=8, height=2, command=self.check_count)
+        self.btn = tk.Button(self.window, text='检查指标', width=8, height=6, command=self.check_count)
 
-        # 打开web、填写指标button
-        self.fill_btn = tk.Button(self.window, text='填指标', width=8, height=2, command=self.fill_web_pages)
+        # 打开web、填写指标button。移动通信能力月报表：1，"区域情况统计表（三）"：2，"地市填写——移动通信能力季报表（二）"
+        self.fill_btn1 = tk.Button(self.window, text='填"移动通信能力月报表"指标', width=20, height=6,
+                                   command=lambda: self.fill_web_pages(sheet_num=1))
+        self.fill_btn2 = tk.Button(self.window, text='填"区域情况统计表（三）"指标', width=20, height=6,
+                                   command=lambda: self.fill_web_pages(sheet_num=2))
+        self.fill_btn3 = tk.Button(self.window, text='填"地市填写——移动通信能力季报表（二）"指标', width=40, height=6,
+                                   command=lambda: self.fill_web_pages(sheet_num=3))
 
     def gui_arrange(self):  # 进行所有控件的布局
         # self.mainframe.grid(column=0, row=0, sticky="N W E S")
@@ -49,8 +54,10 @@ class TcheckGUI(object):
         self.label_info.grid(column=0, row=1, columnspan=4, sticky='W', )
         self.label_input.grid(column=0, row=2, sticky='E')
         self.input_col.grid(column=1, row=2, sticky='W')
-        self.btn.grid(column=2, row=3)
-        self.fill_btn.grid(column=3, row=3)
+        self.btn.grid(column=0, row=3)
+        self.fill_btn1.grid(column=1, row=3)
+        self.fill_btn2.grid(column=2, row=3)
+        self.fill_btn3.grid(column=3, row=3)
         for child in self.window.winfo_children():
             child.grid_configure(padx=5, pady=5)
 
@@ -160,10 +167,12 @@ class TcheckGUI(object):
                 command_list.append(define_var_command)
         return command_list
 
-    def __get_counts_and_reasons(self, sheet, column):
+    @staticmethod
+    def __get_counts_and_reasons(sheet, column):
         # sheet:excel表格的sheet对象
         # column：指标值所在列
         # 获取指标sheet中的指标值和修改原因，返回对象：指标值dict、原因dict
+
         row_count = sheet.nrows  # 总行数
         values = {}  # 指标值字典
         reasons = {}  # 原因字典
@@ -180,8 +189,9 @@ class TcheckGUI(object):
         return values, reasons
 
     # 填表
-    def fill_web_pages(self):
+    def fill_web_pages(self, sheet_num):
         # 读入通信能力报表数据表
+        # sheet_num:表示统计表对应的值，移动通信能力月报表：1，"区域情况统计表（三）"：2，"地市填写——移动通信能力季报表（二）"：3
         try:
             wkbk = xlrd.open_workbook('汇总表.xls')
         except FileNotFoundError:
@@ -226,14 +236,20 @@ class TcheckGUI(object):
 
         # 填入指标、原因：
         try:  # 如果网页元素不存在，则说明暂时还不能填写（此时selenium会报错：selenium.common.exceptions.InvalidElementStateException）
-            # 填报"移动通信能力月报表"
-            self.__fill_web(browser, '//*[@id="ProjectManagement0101"]/table[1]/tbody/tr/td[2]', 180, value1, reason1)
-            # 填报"区域情况统计表（三）"
-            self.__fill_web(browser, '//*[@id="ProjectManagement0101"]/table[5]/tbody/tr/td[2]', 105, value2, reason2)
-            if len(value3) == 0:  # 如果季度报表中的指标值均为空，则不填季报，直接退出
-                return
-            # 填报"地市填写——移动通信能力季报表（二）"
-            self.__fill_web(browser, '//*[@id="ProjectManagement0101"]/table[21]/tbody/tr/td[2]', 191, value3, reason3)
+            if sheet_num == 1:  # 是1，表示点击了第一个按钮，要填"移动通信能力月报表"
+                # 填报"移动通信能力月报表"
+                self.__fill_web(browser, '//*[@id="ProjectManagement0101"]/table[1]/tbody/tr/td[2]', 180, value1,
+                                reason1)
+            elif sheet_num == 2:
+                # 填报"区域情况统计表（三）"
+                self.__fill_web(browser, '//*[@id="ProjectManagement0101"]/table[5]/tbody/tr/td[2]', 105, value2,
+                                reason2)
+            else:
+                if len(value3) == 0:  # 如果季度报表中的指标值均为空，则不填季报，直接退出
+                    return
+                # 填报"地市填写——移动通信能力季报表（二）"
+                self.__fill_web(browser, '//*[@id="ProjectManagement0101"]/table[21]/tbody/tr/td[2]', 191, value3,
+                                reason3)
         except selenium.common.exceptions.InvalidElementStateException:
             self.info.set('指标暂时不能填写！')
             return
@@ -324,7 +340,7 @@ class TcheckGUI(object):
         #             alert = browser.get_alert()  # 点击提交按钮后网也会弹出alert对话框要求确认
         #             alert.accept()
 
-                    # ---------------------------填报"地市填写——移动通信能力季报表（二）"---------------------------
+        # ---------------------------填报"地市填写——移动通信能力季报表（二）"---------------------------
 
     def __fill_web(self, browser, xpath_left, rows, values, reasons):
         # browser：浏览器对象
@@ -345,7 +361,7 @@ class TcheckGUI(object):
             for row in range(4, rows):  # 右侧指标表格最多rows行
                 rtmfrm.is_element_present_by_id('td' + str(row) + '_0', wait_time=10)  # 判断对应的网页元素是否已经显示出来
                 key = browser.find_by_id('td' + str(row) + '_0').first.value  # 获取网页当前行等指标名称
-                if key in values:
+                if key in values:  # 指标值dict中有该值才填，没有则忽略
                     print('当前指标：{0}。'.format(key))
                     browser.find_by_id('td' + str(row) + '_3').click()  # 点击指标对应的"太原"列的单元格，弹出指标填写对话框
                     # 此处不拦截selenium.common.exceptions.InvalidElementStateException异常，留到上层函数中处理！
