@@ -14,6 +14,16 @@
 - __get_counts_and_reasons(sheet, column)： 获取指标sheet中的指标值和修改原因，返回对象：指标值dict、原因dict。（@staticmethod）
 - fill_web_pages(self, sheet_num)： 打开浏览器，调用__fill_web()填入指标。
 - __fill_web(self, browser, xpath_left, rows, values, reasons)： 填入指标。
+## 使用方法：
+1. 安装chrome浏览器。
+2. 将chromedriver.exe（附件中有）的目录加入系统环境变量PATH参数中。
+3. 将指标填到"汇总表.xls"中。
+    - 注意：不能修改这两个文件的名称、内部表结构。
+    - 当月指标默认为"汇总表.xls"中每个sheet的第5列，最好不要修改，如果要修改必须同时修改所有sheet。
+4. 将指标excel文件："汇总表.xls"和"逻辑审核关系表.xls"与本程序置于同一目录下。
+5. 打开程序点击“检查指标”按钮，可以检查"汇总表.xls"中填入的指标是否符合逻辑审核关系中的逻辑关系。
+6. 如果检查没有问题，点击后面的按钮，将自动打开Chrome浏览器，填写对应的报表。
+7. 为确保填写无误，程序不会自动提交审核，填报完成后需要在浏览器页面手工提交审核。
 
 ## 笔记:
 1. 如果页面加载较慢需要等待：browser.is_element_present_by_id('rtmfrm', wait_time=10)，有例子中使用time.sleep(8) 来实现等待（未测试过）
