@@ -1,15 +1,19 @@
 # TCheck
-## TcheckGUI.py
-- 图形界面版本，包含check.py和fillwebpages.py的功能；
-- 基于tkinter实现图形界面
+## 功能：
+- 检查"汇总表.xls"中的指标是否符合"逻辑审核关系表.xls"中的逻辑关系公式。
+- 打开浏览器并登陆网站，将"汇总表.xls"中的指标值自动填入。
+## 主程序TcheckGUI.py实现：
+- 基于xlrd读取excel文档
+- 基于Splinter操纵Chrome浏览器
+- 使用TKinter实现图形界面
 - 使用了selenium的错误消息
 ## 类TcheckGUI(object)的方法：
-- gui_arrange(self)： 进行所有控件的布局
-- check_count(self)： 检查excel文件中的指标值
-- __get_values_assignment_commands(self, sheet, column)： 从sheet中读取指标值，并生成指标变量赋值语句存入一个list中
-- __get_counts_and_reasons(sheet, column)： 获取指标sheet中的指标值和修改原因，返回对象：指标值dict、原因dict
-- fill_web_pages(self, sheet_num)： 打开浏览器，调用__fill_web()填入指标
-- __fill_web(self, browser, xpath_left, rows, values, reasons)： 填表
+- gui_arrange(self)： 进行所有控件的布局。
+- check_count(self)： 检查excel文件中的指标值。
+- __get_values_assignment_commands(self, sheet, column)： 从sheet中读取指标值，并生成指标变量赋值语句存入一个list中。
+- __get_counts_and_reasons(sheet, column)： 获取指标sheet中的指标值和修改原因，返回对象：指标值dict、原因dict。（@staticmethod）
+- fill_web_pages(self, sheet_num)： 打开浏览器，调用__fill_web()填入指标。
+- __fill_web(self, browser, xpath_left, rows, values, reasons)： 填入指标。
 
 ## 笔记:
 1. 如果页面加载较慢需要等待：browser.is_element_present_by_id('rtmfrm', wait_time=10)，有例子中使用time.sleep(8) 来实现等待（未测试过）
