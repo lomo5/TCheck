@@ -29,7 +29,7 @@ class TcheckGUI(object):
         self.info.set('请填入check.xls中，本月指标所在的列（数字）。')  # 此变量绑定到label_info
         self.label_info = tk.Label(self.window, textvariable=self.info, bg='limegreen')  # , bg='blue')
         # 输入框前的提示：
-        self.label_input = tk.Label(self.window, text='当月指标所在列（默认第5列）：', width=18)
+        self.label_input = tk.Label(self.window, text='当月指标所在列（默认第5列）：', width=30)
         # 创建一个输入框,用来输入指标所在的列数
         self.input_col = tk.Entry(self.window, width=10)
 
