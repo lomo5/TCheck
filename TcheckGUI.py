@@ -34,14 +34,14 @@ class TcheckGUI(object):
         self.input_col = tk.Entry(self.window, width=10)
 
         # 检查excel文件中的指标的button
-        self.btn = tk.Button(self.window, text='检查指标', width=8, height=6, command=self.check_count)
+        self.btn = tk.Button(self.window, text='检查指标', width=10, height=2, command=self.check_count)
 
         # 打开web、填写指标button。移动通信能力月报表：1，"区域情况统计表（三）"：2，"地市填写——移动通信能力季报表（二）"
-        self.fill_btn1 = tk.Button(self.window, text='填"移动通信能力月报表"指标', width=20, height=6,
+        self.fill_btn1 = tk.Button(self.window, text='填通信能力月报表', width=20, height=2,
                                    command=lambda: self.fill_web_pages(sheet_num=1))
-        self.fill_btn2 = tk.Button(self.window, text='填"区域情况统计表（三）"指标', width=20, height=6,
+        self.fill_btn2 = tk.Button(self.window, text='填区域情况统计表', width=20, height=2,
                                    command=lambda: self.fill_web_pages(sheet_num=2))
-        self.fill_btn3 = tk.Button(self.window, text='填"地市填写——移动通信能力季报表（二）"指标', width=40, height=6,
+        self.fill_btn3 = tk.Button(self.window, text='填地市通信能力季报表', width=25, height=2,
                                    command=lambda: self.fill_web_pages(sheet_num=3))
 
     def gui_arrange(self):  # 进行所有控件的布局
@@ -78,7 +78,7 @@ class TcheckGUI(object):
         except ValueError:
             col = 5  # 如果输入非数字，或为空，则默认为第5列
 
-        # 读入通信能力报表逻辑检查公式（只导入了两个sheet，没有导入季报的审核公式）
+        # 读入通信能力报表逻辑检查公式
         try:
             workbook_logic = xlrd.open_workbook('逻辑审核关系表.xls')
         except FileNotFoundError:
@@ -95,7 +95,7 @@ class TcheckGUI(object):
         row_count_l3 = sheet_logic3.nrows  # 公式的行数
         func_check = []  # 审核公式数组
 
-        # 以下两个循环将公式读入数组funcCheck
+        # 以下3个循环将公式读入数组funcCheck
         for r in range(1, row_count_l1):
             func_check.append(sheet_logic1.cell(r, col_python_func).value)  # .value表示单元格中的值
 
@@ -157,6 +157,7 @@ class TcheckGUI(object):
         values = {}  # 指标值字典
         command_list = []
         for r in range(4, row_count):
+            # 如果指标值名称（第一列）为空，或者该指标的值未填（默认第5列），则忽略该指标。
             if sheet.cell(r, 0).value != "" and sheet.cell(r, column - 1).value != "":
                 namer = sheet.cell(r, 0).value  # 指标名称
                 # 如果前面输入的col（指标所在列的值超出范围，下面这句会报错：IndexError: array index out of range
@@ -167,11 +168,11 @@ class TcheckGUI(object):
                 command_list.append(define_var_command)
         return command_list
 
+    # 获取指标sheet中的指标值和修改原因，返回对象：指标值dict、原因dict
     @staticmethod
     def __get_counts_and_reasons(sheet, column):
         # sheet:excel表格的sheet对象
         # column：指标值所在列
-        # 获取指标sheet中的指标值和修改原因，返回对象：指标值dict、原因dict
 
         row_count = sheet.nrows  # 总行数
         values = {}  # 指标值字典
@@ -360,17 +361,18 @@ class TcheckGUI(object):
             # row：所在行计数器(共rows行）
             for row in range(4, rows):  # 右侧指标表格最多rows行
                 rtmfrm.is_element_present_by_id('td' + str(row) + '_0', wait_time=10)  # 判断对应的网页元素是否已经显示出来
-                key = browser.find_by_id('td' + str(row) + '_0').first.value  # 获取网页当前行等指标名称
-                if key in values:  # 指标值dict中有该值才填，没有则忽略
-                    print('当前指标：{0}。'.format(key))
-                    browser.find_by_id('td' + str(row) + '_3').click()  # 点击指标对应的"太原"列的单元格，弹出指标填写对话框
-                    # 此处不拦截selenium.common.exceptions.InvalidElementStateException异常，留到上层函数中处理！
-                    browser.find_by_id('txt_reason').fill(reasons[key])  # 填入指标修改原因
-                    browser.find_by_id('txt_xgz').fill(values[key])  # 填入指标值
-                    browser.find_by_id('btn_tj').click()  # 点击提交按钮
-
-                    alert = browser.get_alert()  # 点击提交按钮后网也会弹出alert对话框要求确认
-                    alert.accept()
+                key = browser.find_by_id('td' + str(row) + '_0').first.value  # 获取网页当前行的指标名称
+                if key in values:  # 指标值dict中有该值，没有则忽略
+                    filled_key = browser.find_by_id('td' + str(row) + '_3').first.value  # 获取当前该指标的值
+                    if filled_key == '':  # 该指标还未填时才填
+                        print('当前指标：{0}。'.format(key))
+                        browser.find_by_id('td' + str(row) + '_3').click()  # 点击指标对应的"太原"列的单元格，弹出指标填写对话框
+                        # 此处不拦截selenium.common.exceptions.InvalidElementStateException异常，留到上层函数中处理！
+                        browser.find_by_id('txt_reason').fill(reasons[key])  # 填入指标修改原因
+                        browser.find_by_id('txt_xgz').fill(values[key])  # 填入指标值
+                        browser.find_by_id('btn_tj').click()  # 点击提交按钮
+                        alert = browser.get_alert()  # 点击提交按钮后网也会弹出alert对话框要求确认
+                        alert.accept()
 
 
 def main():
