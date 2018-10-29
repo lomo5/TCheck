@@ -34,10 +34,10 @@ class TcheckGUI(object):
         # 创建一个输入框,用来输入指标所在的列数
         self.input_col = tk.Entry(self.window, width=10)
         # 是否覆盖已经填充的值
-        self.label_check = tk.Label(self.window, text='覆盖已有指标值：', width=20)
         self.check_cover_var = tk.StringVar()  # 记录checkbutton是否被选中
         self.check_cover_var.set('0')  # 默认为非选中状态
-        self.check_cover = tk.Checkbutton(self.window,onvalue=1, offvalue=0,text='覆盖已有的值',variable=self.check_cover_var)
+        self.check_cover = tk.Checkbutton(self.window, onvalue=1, offvalue=0, text='覆盖已填的值',
+                                          variable=self.check_cover_var)
 
         # 检查excel文件中的指标的button
         self.btn = tk.Button(self.window, text='检查指标', width=10, height=2, command=self.check_count)
@@ -60,7 +60,6 @@ class TcheckGUI(object):
         self.label_info.grid(column=0, row=1, columnspan=4, sticky='W', )
         self.label_input.grid(column=0, row=2, sticky='E')
         self.input_col.grid(column=1, row=2, sticky='W')
-        self.label_check.grid(column=2, row=2, sticky='W')
         self.check_cover.grid(column=3, row=2, sticky='W')
         self.btn.grid(column=0, row=3)
         self.fill_btn1.grid(column=1, row=3)
@@ -285,7 +284,7 @@ class TcheckGUI(object):
                 key = browser.find_by_id('td' + str(row) + '_0').first.value  # 获取网页当前行的指标名称
                 if key in values:  # 指标值dict中有该值，没有则忽略
                     filled_key = browser.find_by_id('td' + str(row) + '_3').first.value  # 获取当前该指标的值
-                    if filled_key == '' or self.check_cover_var.get()=='1':  # 该指标还未填时，或者选了"覆盖已有值"时，才填
+                    if filled_key == '' or self.check_cover_var.get() == '1':  # 该指标还未填时，或者选了"覆盖已有值"时，才填
                         print('当前指标：{0}。'.format(key))
                         browser.find_by_id('td' + str(row) + '_3').click()  # 点击指标对应的"太原"列的单元格，弹出指标填写对话框
                         # 此处不拦截selenium.common.exceptions.InvalidElementStateException异常，留到上层函数中处理！
