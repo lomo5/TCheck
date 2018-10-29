@@ -6,6 +6,7 @@ from splinter import Browser
 
 
 class TcheckGUI(object):
+
     # 初始化类
     def __init__(self):
         # 创建主窗口,用于容纳其它组件
@@ -24,7 +25,7 @@ class TcheckGUI(object):
                                     + '4、如果本月不提交季报，请务必将季报指标值所在列（默认为第五列）清空！\n'
                                     + '5、填报完成后需要手工提交审核。'
                                     + '6、本月指标默认为每个sheet的第五列。', justify='left')  # ,width=50, height=2, bg='green')
-        # 信息显示的label
+        # 信息显示的label，StrinVar是tk自定义的变量，目的是实现窗体信息的动态显示
         self.info = tk.StringVar()
         self.info.set('请填入check.xls中，本月指标所在的列（数字）。')  # 此变量绑定到label_info
         self.label_info = tk.Label(self.window, textvariable=self.info, bg='limegreen')  # , bg='blue')
@@ -32,6 +33,11 @@ class TcheckGUI(object):
         self.label_input = tk.Label(self.window, text='当月指标所在列（默认第5列）：', width=30)
         # 创建一个输入框,用来输入指标所在的列数
         self.input_col = tk.Entry(self.window, width=10)
+        # 是否覆盖已经填充的值
+        self.label_check = tk.Label(self.window, text='覆盖已有指标值：', width=20)
+        self.check_cover_var = tk.StringVar()  # 记录checkbutton是否被选中
+        self.check_cover_var.set('0')  # 默认为非选中状态
+        self.check_cover = tk.Checkbutton(self.window,onvalue=1, offvalue=0,text='覆盖已有的值',variable=self.check_cover_var)
 
         # 检查excel文件中的指标的button
         self.btn = tk.Button(self.window, text='检查指标', width=10, height=2, command=self.check_count)
@@ -54,6 +60,8 @@ class TcheckGUI(object):
         self.label_info.grid(column=0, row=1, columnspan=4, sticky='W', )
         self.label_input.grid(column=0, row=2, sticky='E')
         self.input_col.grid(column=1, row=2, sticky='W')
+        self.label_check.grid(column=2, row=2, sticky='W')
+        self.check_cover.grid(column=3, row=2, sticky='W')
         self.btn.grid(column=0, row=3)
         self.fill_btn1.grid(column=1, row=3)
         self.fill_btn2.grid(column=2, row=3)
@@ -262,6 +270,7 @@ class TcheckGUI(object):
         # values：指标值dict
         # reasons：原因dict
 
+        cover_filled = self.check_cover  # false表示不覆盖已经填了值的指标
         # 在左侧iframe中操作
         with browser.get_iframe('ltbfrm') as ltbfrm:
             # 点击页面左侧的"移动通信能力月报表"，在右半部分的iframe中打开填报页面
@@ -276,7 +285,7 @@ class TcheckGUI(object):
                 key = browser.find_by_id('td' + str(row) + '_0').first.value  # 获取网页当前行的指标名称
                 if key in values:  # 指标值dict中有该值，没有则忽略
                     filled_key = browser.find_by_id('td' + str(row) + '_3').first.value  # 获取当前该指标的值
-                    if filled_key == '':  # 该指标还未填时才填
+                    if filled_key == '' or self.check_cover_var.get()=='1':  # 该指标还未填时，或者选了"覆盖已有值"时，才填
                         print('当前指标：{0}。'.format(key))
                         browser.find_by_id('td' + str(row) + '_3').click()  # 点击指标对应的"太原"列的单元格，弹出指标填写对话框
                         # 此处不拦截selenium.common.exceptions.InvalidElementStateException异常，留到上层函数中处理！
